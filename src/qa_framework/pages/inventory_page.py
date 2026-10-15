@@ -34,6 +34,9 @@ class InventoryPage(BasePage):
 
     @allure.step("Wait for the product list")
     def wait_loaded(self, timeout: int | None = None) -> InventoryPage:
+        # The detail page reuses the item hook, so wait for the catalogue's own
+        # sort control first, then for the cards.
+        self.wait_for_any(self.SORT, timeout=timeout)
         self.wait_for_any(self.ITEM, timeout=timeout)
         return self
 

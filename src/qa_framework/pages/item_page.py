@@ -23,6 +23,9 @@ class ItemPage(BasePage):
         return self.wait_loaded()
 
     def wait_loaded(self) -> ItemPage:
+        # The catalogue renders the same name hook, so wait for the detail
+        # page's own "Back to products" button before reading anything.
+        self.wait_for_any(self.BACK)
         self.wait_for_any(self.NAME)
         return self
 
