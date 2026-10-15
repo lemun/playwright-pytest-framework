@@ -1,0 +1,27 @@
+# Data-driven login matrix, run both offline (fake store) and live (QA_RUN_E2E=1).
+# The accounts are the demo store's published practice users, not secrets.
+# An empty expected_error means the login must succeed.
+- id: standard-user
+  username: standard_user
+  password: secret_sauce
+  expected_error: ""
+
+- id: locked-out-user
+  username: locked_out_user
+  password: secret_sauce
+  expected_error: "Epic sadface: Sorry, this user has been locked out."
+
+- id: wrong-password
+  username: standard_user
+  password: not-the-password
+  expected_error: "Epic sadface: Username and password do not match any user in this service"
+
+- id: missing-username
+  username: ""
+  password: secret_sauce
+  expected_error: "Epic sadface: Username is required"
+
+- id: missing-password
+  username: standard_user
+  password: ""
+  expected_error: "Epic sadface: Password is required"

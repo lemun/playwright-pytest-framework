@@ -1,0 +1,74 @@
+[project]
+name = "playwright-pytest-framework"
+version = "2.0.0"
+description = "Layered Playwright + pytest UI test framework: Page Object Model, data-driven cases, offline integration tests against a fake store, Allure reporting. Demonstrated against saucedemo.com."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.11"
+dependencies = [
+    "playwright>=1.64,<2",
+    "pytest>=9.1,<10",
+    "allure-pytest>=2.16,<3",
+    "pytest-html>=4.2,<5",
+    "PyYAML>=6.0.3,<7",
+    "python-dotenv>=1.2,<2",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.17",
+    "mypy>=2.4",
+    "types-PyYAML>=6.0.12",
+]
+
+[build-system]
+requires = ["setuptools>=80"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+# --------------------------------------------------------------------------- #
+# pytest
+# --------------------------------------------------------------------------- #
+[tool.pytest.ini_options]
+pythonpath = ["src", "tests"]
+testpaths = ["tests"]
+# Reports: Allure (rich) + self-contained HTML + JUnit XML (CI-friendly).
+addopts = """
+    -ra
+    --strict-markers
+    --alluredir=reports/allure-results
+    --clean-alluredir
+    --html=reports/html/report.html
+    --self-contained-html
+    --junitxml=reports/junit/results.xml
+"""
+markers = [
+    "e2e: live browser scenarios against the real site (opt-in: QA_RUN_E2E=1)",
+    "integration: real page objects driven against the offline fake store",
+    "smoke: fast critical-path checks",
+]
+log_cli = true
+log_cli_level = "INFO"
+log_cli_format = "%(asctime)s | %(levelname)-7s | %(name)s | %(message)s"
+log_cli_date_format = "%H:%M:%S"
+
+# --------------------------------------------------------------------------- #
+# Lint / types
+# --------------------------------------------------------------------------- #
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "PT", "RUF"]
+
+[tool.ruff.lint.per-file-ignores]
+# Inline HTML/JS of the offline test double reads better unwrapped.
+"tests/integration/fake_store.py" = ["E501"]
+
+[tool.mypy]
+python_version = "3.11"
+files = ["src"]
+strict = true

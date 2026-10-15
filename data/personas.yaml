@@ -1,0 +1,31 @@
+# The demo store's practice accounts, with the behaviour each one is built to
+# show. The accounts are published on the store's login page; they are not
+# secrets (all use the password configured in config/config.yaml).
+- id: standard-user
+  username: standard_user
+  sort_applies: true
+  sample_product: Sauce Labs Bolt T-Shirt
+  sample_add_sticks: true
+  checkout_error: ""
+  min_login_ms: 0
+  description: The healthy baseline every other persona is compared with.
+
+- id: problem-user
+  username: problem_user
+  sort_applies: false
+  sample_product: Sauce Labs Bolt T-Shirt
+  sample_add_sticks: false
+  checkout_error: "Error: Last Name is required"
+  min_login_ms: 0
+  description: >-
+    Sorting does nothing, some products cannot be added from the catalogue, and
+    typing a last name at checkout overwrites the first name instead.
+
+- id: performance-glitch-user
+  username: performance_glitch_user
+  sort_applies: true
+  sample_product: Sauce Labs Bolt T-Shirt
+  sample_add_sticks: true
+  checkout_error: ""
+  min_login_ms: 2000
+  description: Works correctly, but the catalogue takes seconds to render after login.

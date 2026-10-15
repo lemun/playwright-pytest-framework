@@ -1,0 +1,20 @@
+# Alternative data-driven source. MUST stay identical to orders.json / orders.csv
+# (enforced by tests/unit/test_data_loader.py::test_all_sources_agree_on_values).
+# Select it with:  QA_ORDERS=data/orders.yaml
+- id: single-backpack
+  products: [Sauce Labs Backpack]
+  description: "One product: the item total is its price and tax is 8% of it."
+
+- id: light-and-jacket
+  products: [Sauce Labs Bike Light, Sauce Labs Fleece Jacket]
+  description: The store prints this item total as an unrounded float (59.980000000000004).
+
+- id: whole-catalogue
+  products:
+    - Sauce Labs Backpack
+    - Sauce Labs Bike Light
+    - Sauce Labs Bolt T-Shirt
+    - Sauce Labs Fleece Jacket
+    - Sauce Labs Onesie
+    - Test.allTheThings() T-Shirt (Red)
+  description: Every product in the store in one order.

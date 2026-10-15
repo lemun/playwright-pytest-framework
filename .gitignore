@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual envs
+.venv/
+venv/
+env/
+
+# Environment / secrets
+.env
+
+# Test reports & artifacts (generated)
+reports/
+allure-results/
+allure-report/
+test-results/
+
+# Playwright
+playwright-report/
+trace.zip
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/

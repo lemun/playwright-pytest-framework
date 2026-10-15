@@ -1,0 +1,26 @@
+# The catalogue's four sort options. Each test reads the rendered list and checks
+# it is ordered by `key` in the stated direction; `label` is what the store then
+# shows as the active option.
+- id: name-a-to-z
+  option: az
+  label: Name (A to Z)
+  key: name
+  descending: false
+
+- id: name-z-to-a
+  option: za
+  label: Name (Z to A)
+  key: name
+  descending: true
+
+- id: price-low-to-high
+  option: lohi
+  label: Price (low to high)
+  key: price
+  descending: false
+
+- id: price-high-to-low
+  option: hilo
+  label: Price (high to low)
+  key: price
+  descending: true

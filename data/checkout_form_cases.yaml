@@ -1,0 +1,32 @@
+# Checkout step one ("Your Information"): every field is required and the store
+# reports the first missing one. An empty expected_error means the form must
+# be accepted and lead to the order overview.
+- id: complete
+  first_name: Ada
+  last_name: Lovelace
+  postal_code: "10001"
+  expected_error: ""
+
+- id: missing-first-name
+  first_name: ""
+  last_name: Lovelace
+  postal_code: "10001"
+  expected_error: "Error: First Name is required"
+
+- id: missing-last-name
+  first_name: Ada
+  last_name: ""
+  postal_code: "10001"
+  expected_error: "Error: Last Name is required"
+
+- id: missing-postal-code
+  first_name: Ada
+  last_name: Lovelace
+  postal_code: ""
+  expected_error: "Error: Postal Code is required"
+
+- id: all-empty
+  first_name: ""
+  last_name: ""
+  postal_code: ""
+  expected_error: "Error: First Name is required"

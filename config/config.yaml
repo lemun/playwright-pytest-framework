@@ -1,0 +1,51 @@
+# =============================================================================
+# Base configuration, shared by all profiles.
+# Resolution order (lowest -> highest precedence):
+#   base values  ->  selected profile (profiles.<QA_PROFILE>)  ->  env vars
+# See src/qa_framework/config/settings.py for the loader.
+# =============================================================================
+
+# Sauce Labs' public practice store ("Swag Labs"), built for UI-automation demos.
+base_url: "https://www.saucedemo.com"
+
+browser:
+  name: "chromium"          # chromium | firefox | webkit
+  headless: true            # QA_HEADLESS=false for a visible browser
+  slow_mo_ms: 0
+  viewport:
+    width: 1440
+    height: 900
+  locale: "en-US"
+  timezone: "UTC"
+
+timeouts:
+  default_ms: 10000         # default element timeout
+  navigation_ms: 30000      # page navigations
+
+store:
+  tax_rate: 0.08            # sales tax added at checkout (checked by the order-total test)
+
+auth:
+  # The demo store publishes these practice accounts on its own login page;
+  # they are not secrets. Override with QA_USERNAME / QA_PASSWORD.
+  username: "standard_user"
+  password: "secret_sauce"
+
+checkout:
+  first_name: "Test"
+  last_name: "Buyer"
+  postal_code: "10001"
+
+artifacts:
+  dir: "reports/artifacts"  # screenshots & traces
+
+# -----------------------------------------------------------------------------
+# Profiles, selected via QA_PROFILE (default: "local"). Deep-merged over base.
+# -----------------------------------------------------------------------------
+profiles:
+  local: {}                 # inherits everything above
+
+  ci:
+    timeouts:
+      default_ms: 15000
+      navigation_ms: 45000
