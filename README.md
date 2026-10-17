@@ -96,27 +96,22 @@ conftest.py                 fixtures settings → playwright → browser → con
 Dependencies point one way: tests → journeys → flow → pages → `BasePage` →
 Playwright; config, models and utils are leaves.
 
-**Design notes**
+Design notes (resilient locators, verified actions, independent oracles, `Decimal` money, typed
+data-driven cases) are in [docs/design.md](docs/design.md).
 
-- **Tests never touch a selector.** Journeys call `StoreFlow` and its page
-  objects (`flow.inventory`, `flow.cart`, ...); locators live only in page classes.
-- **Resilient locators.** Each element is an ordered tuple, stable `data-test`
-  hook first and a class/id fallback second. `BasePage.locator_any` resolves to
-  whichever the current build renders (a test proves the fallback works).
-- **Verified actions.** `InventoryPage.add` returns `True` only when the card's
-  button flips to "Remove"; it never reports optimistic success.
-- **Independent oracles.** The order-total check takes its expected prices from
-  the catalogue, not from the overview it checks; sorting is checked against the
-  rendered list; persona expectations are data, so the healthy and the faulty
-  accounts run through the same test.
-- **Money is `Decimal`.** Price parsing is currency-symbol agnostic and reads a
-  single contiguous number. The tax rate comes from config as an exact
-  `Decimal`. The live store prints its item total as an unrounded float sum
-  (`59.980000000000004` for a bike light and a fleece jacket); the check rounds
-  that to the cent and attaches the raw value.
-- **Data-driven, typed.** Rows from any format are coerced and validated once
-  (`OrderCase.from_dict` and friends), so CSV strings and JSON lists behave the
-  same; a unit test enforces that the three order files agree.
+## Using this for your own site
+
+The framework layers (settings, browser factory, `BasePage`, reporting, fixtures, data loader) are generic.
+The saucedemo parts are the page objects, the flow, the journeys, the data files and the fake store.
+
+1. Set `QA_BASE_URL` (or `base_url` in `config/config.yaml`) to your site.
+2. Replace the classes in `src/qa_framework/pages/` with your own, extending `BasePage`, and compose them in
+   `src/qa_framework/flows/`. Keep selectors inside page classes only.
+3. Rewrite `tests/journeys.py` and the files in `data/` for your user journeys. Case models live in
+   `src/qa_framework/models/`.
+4. The offline layer is optional. If you do not want a fake store, delete `tests/integration/` and keep the unit
+   and e2e layers.
+5. Run `uv run pytest` for the offline layers, then `QA_RUN_E2E=1 uv run pytest -m e2e` against your site.
 
 ## Reports
 
@@ -157,9 +152,10 @@ practice accounts saucedemo.com prints on its own login page; they are not secre
 
 ## CI
 
-[`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs ruff + mypy, the
-unit and offline integration layers on Python 3.11 and 3.14, and then the live
-e2e suite headless against saucedemo.com. Reports are uploaded as artifacts.
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs ruff + mypy, then the unit and offline
+integration layers on Python 3.11 and 3.14, on every push and pull request. The live e2e job against
+saucedemo.com depends on a third-party site, so it runs only when you start the workflow by hand from the
+Actions tab. Reports are uploaded as artifacts.
 
 ## Limitations
 
