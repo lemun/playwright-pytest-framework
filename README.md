@@ -1,6 +1,21 @@
-# playwright-pytest-framework
+<div align="center">
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/banner-dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="docs/assets/banner-light.png">
+  <img src="docs/assets/banner-light.png" alt="playwright-pytest-framework: layered UI testing with shared journeys, offline and live" width="100%">
+</picture>
+
+### Write each user journey once. Run it offline and live.
 
 [![CI](https://github.com/lemun/playwright-pytest-framework/actions/workflows/ci.yml/badge.svg)](https://github.com/lemun/playwright-pytest-framework/actions/workflows/ci.yml)
+[![Python ≥3.11](https://img.shields.io/badge/python-%E2%89%A53.11-blue)](pyproject.toml)
+[![Playwright](https://img.shields.io/badge/Playwright-%E2%89%A51.64-2EAD33)](pyproject.toml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
+[Quick start](#quick-start) · [How it works](#how-it-works) · [Journeys](#the-journeys) · [Reports](#running-tests-and-reports) · [Configuration](#configuration) · [Your own site](#using-this-for-your-own-site) · [CI](#ci)
+
+</div>
 
 A layered UI test framework in **Python + Playwright + pytest**: Page Object
 Model, user journeys written once and run against two targets, typed layered
@@ -8,18 +23,29 @@ configuration, data-driven cases (JSON / YAML / CSV), Allure + HTML + JUnit
 reporting, and a fast **offline integration layer** that drives the real page
 objects in a real browser against a local fake store.
 
-The live target is [saucedemo.com](https://www.saucedemo.com), Sauce Labs'
-public practice store built for UI-automation demos. The journeys:
+<p align="center">
+  <img src="docs/assets/tests-demo.gif" alt="Terminal recording: pytest runs the 56 unit tests of the framework and all pass, then pytest collects the 36 offline integration tests." width="880">
+  <br>
+  <sub>The unit layer running (no browser needed), then the offline integration tests being collected.
+  <a href="docs/assets/tests-demo.mp4">Watch the MP4</a>.</sub>
+</p>
 
-| Journey | What it proves | Data |
-|---|---|---|
-| Catalogue sorting | each of the four sort options orders the *rendered* list by name or price, without adding or dropping products, and the store shows the chosen option | `data/sort_options.yaml` |
-| Cart persistence | added products stay in the cart across the detail page, the cart page, a reload and back in the catalogue | `data/orders.{json,yaml,csv}` |
-| Removal | removing from a catalogue card and from the cart page updates the cart, the badge and the card buttons | |
-| Checkout form | every required field has its own error message, and only a complete form reaches the overview | `data/checkout_form_cases.yaml` |
-| Order total | the overview lists exactly the ordered products, item total = sum of the catalogue prices, tax = 8% rounded to the cent, total = item total + tax; then the order is placed | `data/orders.{json,yaml,csv}` |
-| Personas | the store's practice accounts behave as documented: `problem_user` cannot sort or check out, `performance_glitch_user` is slow but correct | `data/personas.yaml` |
-| Login | the login matrix (valid, locked out, wrong password, missing fields) and logout | `data/login_cases.yaml` |
+## Why
+
+UI suites rot when every test re-implements the same clicks and when the only way to run them is against a
+live site. This framework keeps three things separate:
+
+- **Journeys are written once.** Each journey is a function in
+  [`tests/journeys.py`](tests/journeys.py) that takes a `StoreFlow` and one data-driven case. The offline and
+  live suites call the same functions with the same data.
+- **Selectors live in page objects only.** Tests never touch a locator; each element is an ordered
+  fallback chain, stable `data-test` hook first.
+- **Most of the suite needs no internet.** The integration layer drives the real page objects in a real
+  browser against a local fake store served through request interception, so it is deterministic and offline.
+  The live run against the real site is opt-in.
+
+The live target is [saucedemo.com](https://www.saucedemo.com), Sauce Labs'
+public practice store built for UI-automation demos.
 
 ## Quick start
 
@@ -35,19 +61,80 @@ QA_RUN_E2E=1 uv run pytest -m e2e          # live e2e against saucedemo.com (nee
 Without uv: `python -m venv .venv && . .venv/bin/activate && pip install -e .`,
 then the same `playwright install` / `pytest` commands without `uv run`.
 
-More ways to run:
+## How it works
 
-```bash
-QA_RUN_E2E=1 QA_HEADLESS=false QA_SLOWMO_MS=300 uv run pytest -m e2e   # watch it in a real window
-QA_RUN_E2E=1 QA_BROWSER=firefox uv run pytest -m e2e                   # other engine (install it first)
-QA_ORDERS=data/orders.csv QA_RUN_E2E=1 uv run pytest -m e2e -k order_total     # orders from the CSV file
-QA_PROFILE=ci uv run pytest                                            # longer timeouts
-uv run pytest -m smoke                                                 # quick subset
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/how-it-works-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="docs/assets/how-it-works.svg">
+  <img src="docs/assets/how-it-works.svg" alt="Typed data cases feed shared journeys, StoreFlow, page objects and Playwright. The same journeys run offline against a routed fake store or live against saucedemo.com. Reports are Allure, HTML and JUnit XML, with screenshots and traces on failure." width="100%">
+</picture>
+
+Dependencies point one way: tests → journeys → flow → pages → `BasePage` →
+Playwright; config, models and utils are leaves.
+
+```text
+src/qa_framework/
+├── config/settings.py      typed, immutable settings: config.yaml → profile → env vars
+├── core/browser_factory.py builds Browser / BrowserContext from Settings
+├── pages/                  Page Object Model, one class per page, all extend BasePage
+│   ├── base_page.py          navigation, resilient locator chains, reporting
+│   ├── login_page.py         navbar.py (header component)
+│   ├── inventory_page.py     item_page.py   cart_page.py   checkout_page.py
+├── flows/store_flow.py     the page objects of one page, composed into shared steps
+│                           (log in, add products, check out, verify an order)
+├── models/                 CatalogItem, OrderSummary and the case models (validation lives here)
+└── utils/                  Decimal price parsing, JSON/YAML/CSV loader, Allure reporter
+config/config.yaml          base config + profiles (local, ci) + the store's tax rate
+data/                       orders.{json,yaml,csv}, sort_options, checkout_form_cases,
+                            personas, login_cases (YAML)
+tests/journeys.py           the user journeys, shared by the offline and live suites
+conftest.py                 fixtures settings → playwright → browser → context → page → flow,
+                            e2e gating, failure screenshots + traces
 ```
 
-Lint and types: `uv run ruff check . && uv run ruff format --check . && uv run mypy`.
+Design notes (resilient locators, verified actions, independent oracles, `Decimal` money, typed
+data-driven cases) are in [docs/design.md](docs/design.md).
 
-## Test layers
+### The offline fake store
+
+The fake store ([`tests/integration/fake_store.py`](tests/integration/fake_store.py))
+is served through Playwright request interception (`context.route`), and every
+other request is aborted, so the integration layer is deterministic and offline.
+It reproduces only what the page objects rely on: the real app's `data-test`
+hooks, login rules and messages, a `localStorage` cart, the sort options, the
+checkout form's messages, the overview totals with 8% tax, and the documented
+defects of `problem_user`, `performance_glitch_user` and `error_user`. Two knobs
+(an inflated item total, a different tax rate) prove that the order-total check
+fails when the overview is wrong, and the faulty accounts prove that a silently
+dropped add is reported rather than assumed.
+
+## Features
+
+- **Page Object Model** with resilient, ordered locator chains and verified actions (an add is reported
+  only when the card's button flips to "Remove").
+- **Shared journeys** run against the fake store and the live site from one definition.
+- **Data-driven, typed cases** from JSON, YAML or CSV, validated once when loaded.
+- **Layered configuration**: `config.yaml` → profile (`local`, `ci`) → environment variables, strict
+  booleans so a typo fails loudly.
+- **Independent oracles**: expected prices come from the catalogue, not from the page being checked;
+  money is `Decimal`.
+- **Failure evidence**: full-page screenshot and Playwright trace attached on failure.
+- **Three report formats**: Allure, self-contained HTML and JUnit XML.
+- **CI** with lint, types, and the unit + offline layers on Python 3.11 and 3.14.
+
+## The journeys
+
+| Journey | What it proves | Data |
+|---|---|---|
+| Catalogue sorting | each of the four sort options orders the *rendered* list by name or price, without adding or dropping products, and the store shows the chosen option | `data/sort_options.yaml` |
+| Cart persistence | added products stay in the cart across the detail page, the cart page, a reload and back in the catalogue | `data/orders.{json,yaml,csv}` |
+| Removal | removing from a catalogue card and from the cart page updates the cart, the badge and the card buttons | |
+| Checkout form | every required field has its own error message, and only a complete form reaches the overview | `data/checkout_form_cases.yaml` |
+| Order total | the overview lists exactly the ordered products, item total = sum of the catalogue prices, tax = 8% rounded to the cent, total = item total + tax; then the order is placed | `data/orders.{json,yaml,csv}` |
+| Personas | the store's practice accounts behave as documented: `problem_user` cannot sort or check out, `performance_glitch_user` is slow but correct | `data/personas.yaml` |
+| Login | the login matrix (valid, locked out, wrong password, missing fields) and logout | `data/login_cases.yaml` |
+
+### Test layers
 
 | Layer | Where | Needs | Default `pytest` |
 |---|---|---|---|
@@ -71,33 +158,37 @@ defects of `problem_user`, `performance_glitch_user` and `error_user`. Two knobs
 fails when the overview is wrong, and the faulty accounts prove that a silently
 dropped add is reported rather than assumed.
 
-## Architecture
+## Running tests and reports
 
-```text
-src/qa_framework/
-├── config/settings.py      typed, immutable settings: config.yaml → profile → env vars
-├── core/browser_factory.py builds Browser / BrowserContext from Settings
-├── pages/                  Page Object Model, one class per page, all extend BasePage
-│   ├── base_page.py          navigation, resilient locator chains, reporting
-│   ├── login_page.py         navbar.py (header component)
-│   ├── inventory_page.py     item_page.py   cart_page.py   checkout_page.py
-├── flows/store_flow.py     the page objects of one page, composed into shared steps
-│                           (log in, add products, check out, verify an order)
-├── models/                 CatalogItem, OrderSummary and the case models (validation lives here)
-└── utils/                  Decimal price parsing, JSON/YAML/CSV loader, Allure reporter
-config/config.yaml          base config + profiles (local, ci) + the store's tax rate
-data/                       orders.{json,yaml,csv}, sort_options, checkout_form_cases,
-                            personas, login_cases (YAML)
-tests/journeys.py           the user journeys, shared by the offline and live suites
-conftest.py                 fixtures settings → playwright → browser → context → page → flow,
-                            e2e gating, failure screenshots + traces
+Besides the quick start, these variants are supported:
+
+```bash
+QA_RUN_E2E=1 QA_HEADLESS=false QA_SLOWMO_MS=300 uv run pytest -m e2e   # watch it in a real window
+QA_RUN_E2E=1 QA_BROWSER=firefox uv run pytest -m e2e                   # other engine (install it first)
+QA_ORDERS=data/orders.csv QA_RUN_E2E=1 uv run pytest -m e2e -k order_total     # orders from the CSV file
+QA_PROFILE=ci uv run pytest                                            # longer timeouts
+uv run pytest -m smoke                                                 # quick subset
 ```
 
-Dependencies point one way: tests → journeys → flow → pages → `BasePage` →
-Playwright; config, models and utils are leaves.
+Every run writes to `reports/` (gitignored):
 
-Design notes (resilient locators, verified actions, independent oracles, `Decimal` money, typed
-data-driven cases) are in [docs/design.md](docs/design.md).
+| Format | Location | View |
+|---|---|---|
+| Allure | `reports/allure-results/` | `allure serve reports/allure-results` (needs the Allure CLI and Java) |
+| HTML | `reports/html/report.html` | open in a browser |
+| JUnit XML | `reports/junit/results.xml` | any CI |
+
+<p align="center">
+  <img src="docs/assets/html-report.png" alt="The self-contained pytest-html report of a unit-layer run: environment table, 56 passed, and the list of passing tests." width="880">
+  <br>
+  <sub>The HTML report of a unit-layer run.</sub>
+</p>
+
+Journeys attach screenshots, the measured login time and an "order-summary"
+(lines, amounts, expected values) to Allure. On failure the
+full-page screenshot and the Playwright trace are attached too (open a trace
+with `uv run playwright show-trace <trace.zip>`). CI uploads `reports/` as a
+build artifact.
 
 ## Using this for your own site
 
@@ -112,22 +203,6 @@ The saucedemo parts are the page objects, the flow, the journeys, the data files
 4. The offline layer is optional. If you do not want a fake store, delete `tests/integration/` and keep the unit
    and e2e layers.
 5. Run `uv run pytest` for the offline layers, then `QA_RUN_E2E=1 uv run pytest -m e2e` against your site.
-
-## Reports
-
-Every run writes to `reports/` (gitignored):
-
-| Format | Location | View |
-|---|---|---|
-| Allure | `reports/allure-results/` | `allure serve reports/allure-results` (needs the Allure CLI and Java) |
-| HTML | `reports/html/report.html` | open in a browser |
-| JUnit XML | `reports/junit/results.xml` | any CI |
-
-Journeys attach screenshots, the measured login time and an "order-summary"
-(lines, amounts, expected values) to Allure. On failure the
-full-page screenshot and the Playwright trace are attached too (open a trace
-with `uv run playwright show-trace <trace.zip>`). CI uploads `reports/` as a
-build artifact.
 
 ## Configuration
 
@@ -167,6 +242,16 @@ Actions tab. Reports are uploaded as artifacts.
 - The `performance_glitch_user` check asserts a lower bound on the login time
   (2 s; the live store blocks for about 5 s), so it can only fail when the
   documented slowdown disappears, not when the network is slow.
+
+## Contributing
+
+Issues and pull requests are welcome. Before opening a pull request, run what CI runs:
+
+```bash
+uv sync
+uv run ruff check . && uv run ruff format --check . && uv run mypy
+uv run pytest
+```
 
 ## Credits
 
