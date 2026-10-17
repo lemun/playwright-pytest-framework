@@ -54,6 +54,8 @@ jobs:
 
   e2e:
     name: Live e2e (saucedemo.com, headless)
+    # Depends on a third-party site, so it runs only when started from the Actions tab.
+    if: github.event_name == 'workflow_dispatch'
     needs: offline
     runs-on: ubuntu-latest
     env:
